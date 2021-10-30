@@ -1,0 +1,11 @@
+<launch>
+  <node pkg="stm32_dcmotor_serial" type="STM32_DCMotor" name="STM32_DCMotor" output="screen">
+    <param name="Serial_Port" value="/dev/ttyACM0"/>
+    <param name="Baund_rate" value="115200"/>
+    <param name="character_size" value="8"/>
+    <param name="stop_bits" value="1"/>
+    <param name="parity" value="3"/>
+    <param name="flow_control" value="0"/>
+    <param name="pulse_resoution" value="3400"/>
+  </node>
+</launch>
