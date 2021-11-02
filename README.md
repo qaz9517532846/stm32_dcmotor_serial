@@ -39,7 +39,7 @@ $ catkin_make
 $ roslaunch stm32_dcmotor_serial stm32_dcmotor.launch
 ```
 
-### Run serial_ros server
+### Run serial_ros client
 
 ``` bash
 $ rosrun stm32_dcmotor_serial STM32_DCMotor_client <duty>
