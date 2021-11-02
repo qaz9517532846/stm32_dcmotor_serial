@@ -79,6 +79,8 @@ $ rosrun stm32_dcmotor_serial STM32_DCMotor_client <duty>
 
 [1]. LibSerial. https://github.com/crayzeewulf/libserial
 
+[2]. STM_DCMotor_Encoder. https://github.com/qaz9517532846/STM_DCMotor_Encoder
+
 ------
 
 This repository is for your reference only. copying, patent application, academic journals are strictly prohibited.
