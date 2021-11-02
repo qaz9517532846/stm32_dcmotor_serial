@@ -12,6 +12,7 @@ STM32_DCMotor::STM32_DCMotor(std::string name)
     private_nh_.param<int>("pulse_resoution", pulse_resoution_, 512);
 
     duty_motor = private_nh_.advertiseService("duty_control", &STM32_DCMotor::stm32_dutycontrol, this);
+    encoder_motor = private_nh_.advertise<stm32_dcmotor_serial::encoder>("encoder", 1000);
 
     serial_port_.Open(serial_port_name_.c_str());
     if(!serial_port_.IsOpen())
@@ -142,12 +143,34 @@ void STM32_DCMotor::serial_flowcontrol(int flowcontrol)
 bool STM32_DCMotor::stm32_dutycontrol(stm32_dcmotor_serial::dutycontrol::Request  &req, 
                                       stm32_dcmotor_serial::dutycontrol::Response &res)
 {
-    serial_port_.Write(req.duty.c_str());
+    std::string write_serial_;
+    std::string direction_;
+
+    std::stringstream duty_stram_;
+    duty_stram_ << std::fixed << std::setprecision(2) << fabs(req.duty);
+    std::string duty_string = duty_stram_.str();
+    
+    direction_ = req.duty >= 0 ? "0" : "1";
+
+    if(fabs(req.duty) < 100 && fabs(req.duty) >= 10)
+    {
+        write_serial_ = direction_ + "x" + "0" + duty_string;
+    }
+    else if(fabs(req.duty) < 10)
+    {
+        write_serial_ = direction_ + "x" + "00" + duty_string;
+    }
+    else
+    {
+        write_serial_ = direction_ + "x" + duty_string;
+    }
+
+    serial_port_.Write(write_serial_.c_str());
 
     // Wait until the data has actually been transmitted.
     serial_port_.DrainWriteBuffer() ;
 
-    ROS_INFO("Sent data to STM32 = %s", req.duty.c_str());
+    ROS_INFO("Sent data to STM32 = %s", write_serial_.c_str());
 
     res.result = true;
     ROS_INFO("Sent data to STM32 Result = %d", res.result);
@@ -159,6 +182,8 @@ void STM32_DCMotor::spin()
     while(nh_.ok())
     {
         ros::spinOnce();
+
+        stm32_dcmotor_serial::encoder encoder_;
 
         current_time_ = ros::Time::now();
         double dt = (current_time_- last_time_).toSec();
@@ -184,7 +209,15 @@ void STM32_DCMotor::spin()
         double dc_motor_vel = (move_resolution_ - last_move_resolution_) / dt;
         last_move_resolution_ = move_resolution_;
         ROS_INFO("DC Motor velocity = %.2f rad/s", dc_motor_vel);
+
+        encoder_.encoder_pulse = encoder_data_process(read_string);
+        encoder_.motor_vel = dc_motor_vel;
+
+        dcmotor_tf_publisher(motor_pos_);
+
         last_time_ = current_time_;
+
+        encoder_motor.publish(encoder_);
 
         // Print to the terminal what was sent and what was received.
         //std::cout << "\tSerial Port received:\t" << read_string << std::endl;
@@ -257,4 +290,26 @@ int STM32_DCMotor::charToint_Number(char data)
     {
         return 0;
     }
+}
+
+void STM32_DCMotor::dcmotor_tf_publisher(double position)
+{
+    static tf2_ros::TransformBroadcaster br;
+    geometry_msgs::TransformStamped transformStamped;
+    
+    transformStamped.header.stamp = ros::Time::now();
+    transformStamped.header.frame_id = "base";
+    transformStamped.child_frame_id = "motor_link";
+    transformStamped.transform.translation.x = 0;
+    transformStamped.transform.translation.y = 0;
+    transformStamped.transform.translation.z = 0.3;
+
+    tf2::Quaternion q;
+    q.setRPY(0, 0, position);
+    transformStamped.transform.rotation.x = q.x();
+    transformStamped.transform.rotation.y = q.y();
+    transformStamped.transform.rotation.z = q.z();
+    transformStamped.transform.rotation.w = q.w();
+
+    br.sendTransform(transformStamped);
 }

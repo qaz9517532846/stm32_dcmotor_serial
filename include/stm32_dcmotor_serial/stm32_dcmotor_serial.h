@@ -4,11 +4,15 @@
 #include <iostream>
 #include <unistd.h>
 #include <string.h>
+
 #include <libserial/SerialPort.h>
 #include <libserial/SerialStream.h>
 
 #include <stm32_dcmotor_serial/encoder.h>
 #include <stm32_dcmotor_serial/dutycontrol.h>
+
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 using namespace LibSerial;
 
@@ -24,6 +28,8 @@ private:
     ros::NodeHandle nh_;
 
     ros::ServiceServer duty_motor;
+    ros::Publisher encoder_motor;
+
     ros::Time current_time_, last_time_;
 
     SerialPort serial_port_;
@@ -55,4 +61,6 @@ private:
 
     int encoder_data_process(std::string data);
     int charToint_Number(char data);
+
+    void dcmotor_tf_publisher(double position);
 };

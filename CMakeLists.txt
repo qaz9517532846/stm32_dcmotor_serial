@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(stm32_dcmotor_serial)
 
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  tf2
+  tf2_ros
   message_generation
 )
 
@@ -41,3 +43,6 @@ include_directories(
 
 add_executable(STM32_DCMotor src/stm32_dcmotor_serial_main.cpp src/stm32_dcmotor_serial.cpp)
 target_link_libraries(STM32_DCMotor ${catkin_LIBRARIES} serial)
+
+add_executable(STM32_DCMotor_client src/stm32_dcmotor_client.cpp)
+target_link_libraries(STM32_DCMotor_client ${catkin_LIBRARIES})
