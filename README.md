@@ -13,7 +13,7 @@ Control a Motor and read a AB Encoder using STM32 MCU.
   
 ------
 
-### Clone serial_ros
+### Clone stm32_dcmotor_serial
 
 ``` bash
 $ cd <catkin_workspace>/src
