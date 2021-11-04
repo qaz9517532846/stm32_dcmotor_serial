@@ -75,6 +75,12 @@ $ rosrun stm32_dcmotor_serial STM32_DCMotor_client <duty>
 
 ------
 
+### Demo
+
+https://www.youtube.com/watch?v=4B3UtQTfNhs
+
+------
+
 ### Reference
 
 [1]. LibSerial. https://github.com/crayzeewulf/libserial
