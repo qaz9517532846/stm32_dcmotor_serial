@@ -77,6 +77,7 @@ $ rosrun stm32_dcmotor_serial STM32_DCMotor_client <duty>
 
 ### Demo
 
+[![Demo](https://www.youtube.com/watch?v=4B3UtQTfNhs/0.jpg)](https://www.youtube.com/watch?v=4B3UtQTfNhs "Demo")
 [![Demo]](https://www.youtube.com/watch?v=4B3UtQTfNhs)
 
 ------
