@@ -49,29 +49,15 @@ $ rosrun stm32_dcmotor_serial STM32_DCMotor_client <duty>
 
 ### ROS Parameter
 
-- Serial_Port(type: string, default: "/dev/ttyACM0") : Serial Comunication with device(ex. Arduino, STM32, Renesas, Linkit board and MCU).
-
-- Baund_rate(type: int, default: 115200): setting device baund rate.
-
-- character_size(type: int, default: 8): setting device character size.
-
-- stop_bits(type: int, default: 1): setting device stop bits.
-
-- parity(type: int, default: 0): setting device parity.
-
-   - 1 is even.
-
-   - 2 is odd.
-
-   - 3 is none.
-
-- flow_control(type: int, default: 1): setting device flow control.
-
-   - 0 is none.
-
-   - 1 is hardware.
-
-- pulse_resoution(type: int, default: 512): 512p/r
+| Item           | Type                       | Default                    | illustrate                    |
+| ---            | ---                        | ---                        | ---                           |
+| Serial_Port    | String                     |  "/dev/ttyACM0"            | Serial Comunication with device(ex. Arduino, STM32, Renesas, Linkit board and MCU). |
+| Baund_rat      | Int                        | 115200                     | Setting device baund rate.     |
+| character_size | Int                        | 8                          | Setting device character size. |
+| stop_bits      | Int                        | 1                          | Setting device stop bits.      |
+| parity         | Int                        | 0                          | Setting device parity.         |
+| flow_control   | Int                        | 1                          | setting device flow control.   |
+| pulse_resoution| Int                        | 512                        | Setting pulse of rev.          |
 
 ------
 
