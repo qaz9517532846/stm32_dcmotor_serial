@@ -42,13 +42,10 @@ private:
     int frequency_;
 
     int pulse_resoution_;
-    double move_resolution_ = 0;
-    double last_move_resolution_ = 0;
     double motor_pos_;
 
-    std::string serial_read;
-
-    std::string read_string;
+    LibSerial::DataBuffer sendData;
+    LibSerial::DataBuffer revData;
 
     void serial_baund_rate(int baund_rate);
     void serial_character_size(int character_size);
@@ -58,9 +55,6 @@ private:
 
     bool stm32_dutycontrol(stm32_dcmotor_serial::dutycontrol::Request  &req,
                            stm32_dcmotor_serial::dutycontrol::Response &res);
-
-    int encoder_data_process(std::string data);
-    int charToint_Number(char data);
 
     void dcmotor_tf_publisher(double position);
 };

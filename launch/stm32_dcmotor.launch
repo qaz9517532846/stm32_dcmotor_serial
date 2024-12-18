@@ -6,6 +6,6 @@
     <param name="stop_bits" value="1"/>
     <param name="parity" value="3"/>
     <param name="flow_control" value="0"/>
-    <param name="pulse_resoution" value="3400"/>
+    <param name="pulse_resoution" value="7000"/>
   </node>
 </launch>

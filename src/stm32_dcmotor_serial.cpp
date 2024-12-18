@@ -1,5 +1,8 @@
 #include <stm32_dcmotor_serial/stm32_dcmotor_serial.h>
 
+#define SERIAL_SEND_LEN         (3)
+#define SERIAL_REV_LEN          (2)
+
 STM32_DCMotor::STM32_DCMotor(std::string name)
 {
     ros::NodeHandle private_nh_("~");
@@ -26,6 +29,9 @@ STM32_DCMotor::STM32_DCMotor(std::string name)
     serial_stop_bits(stop_bits_);
     serial_parity(parity_);
     serial_flowcontrol(flowcontrol_);
+
+    sendData.resize(SERIAL_SEND_LEN);
+    revData.resize(SERIAL_REV_LEN);
 }
 
 STM32_DCMotor::~STM32_DCMotor()
@@ -143,34 +149,11 @@ void STM32_DCMotor::serial_flowcontrol(int flowcontrol)
 bool STM32_DCMotor::stm32_dutycontrol(stm32_dcmotor_serial::dutycontrol::Request  &req, 
                                       stm32_dcmotor_serial::dutycontrol::Response &res)
 {
-    std::string write_serial_;
-    std::string direction_;
+    sendData[0] = req.duty >= 0 ? 1 : 0;
+    sendData[1] = static_cast<uint8_t>(fabs(req.duty));
+    sendData[2] = static_cast<uint8_t>((fabs(req.duty) - sendData[1]) * 100);
 
-    std::stringstream duty_stram_;
-    duty_stram_ << std::fixed << std::setprecision(2) << fabs(req.duty);
-    std::string duty_string = duty_stram_.str();
-    
-    direction_ = req.duty >= 0 ? "0" : "1";
-
-    if(fabs(req.duty) < 100 && fabs(req.duty) >= 10)
-    {
-        write_serial_ = direction_ + "x" + "0" + duty_string;
-    }
-    else if(fabs(req.duty) < 10)
-    {
-        write_serial_ = direction_ + "x" + "00" + duty_string;
-    }
-    else
-    {
-        write_serial_ = direction_ + "x" + duty_string;
-    }
-
-    serial_port_.Write(write_serial_.c_str());
-
-    // Wait until the data has actually been transmitted.
-    serial_port_.DrainWriteBuffer() ;
-
-    ROS_INFO("Sent data to STM32 = %s", write_serial_.c_str());
+    ROS_INFO("Duty = %f, Sent data 0x%x 0x%x 0x%x", req.duty, sendData[0], sendData[1], sendData[2]);
 
     res.result = true;
     ROS_INFO("Sent data to STM32 Result = %d", res.result);
@@ -179,6 +162,13 @@ bool STM32_DCMotor::stm32_dutycontrol(stm32_dcmotor_serial::dutycontrol::Request
 
 void STM32_DCMotor::spin()
 {
+    uint16_t encoderCnt = 0;
+    uint16_t encoderCntOld = 0;
+    int mtrDist;
+    double mtrPos;
+
+    ros::Rate loop_rate(20);
+
     while(nh_.ok())
     {
         ros::spinOnce();
@@ -187,109 +177,51 @@ void STM32_DCMotor::spin()
 
         current_time_ = ros::Time::now();
         double dt = (current_time_- last_time_).toSec();
+        int deltaCNT = 0; 
+        double deltaDist = 0;
 
-        try
+        // Read the appropriate number of bytes from each serial port.
+
+		serial_port_.Write(sendData);
+
+        serial_port_.Read(revData, SERIAL_REV_LEN);
+        if(revData.size() > 0)
         {
-            // Read the appropriate number of bytes from each serial port.
-            serial_port_.Read(read_string, 10, 1500);
-            ROS_INFO("Recieve data from STM32 = %s", read_string.c_str());
-            ROS_INFO("DC Motor Encoder count = %d", encoder_data_process(read_string));
+            encoderCnt = revData[0] << 8 | revData[1];
 
-            move_resolution_ = (float)encoder_data_process(read_string) / pulse_resoution_ * 2 * 3.1415926;
-            motor_pos_ = (float)(encoder_data_process(read_string) % pulse_resoution_) / pulse_resoution_ * 2 * 3.1415926;
+            //ROS_INFO("Recieve data 0x%x 0x%x, Encoder CNT = %d", revData[0], revData[1], encoderCnt);
 
-            ROS_INFO("DC Motor Move rad = %.2f", move_resolution_);
-            ROS_INFO("DC Motor position = %.2f", motor_pos_);
-        }
-        catch(const ReadTimeout&)
-        {
-            std::cerr << "The Read() call has timed out." << std::endl;
+            deltaCNT = (int)encoderCnt - (int)encoderCntOld;
+            if(fabs(deltaCNT) > 65535 * 0.5) deltaCNT = (int16_t)encoderCnt - (int16_t)encoderCntOld;
+
+            mtrDist += deltaCNT;
+            mtrPos = (mtrDist % pulse_resoution_) / (double)pulse_resoution_ * 2 * M_PI;
+            deltaDist = (double)deltaCNT / (double)pulse_resoution_ * 2 * M_PI;
+
+            //ROS_INFO("DC Motor position = %.2f", mtrPos);
         }
 
-        double dc_motor_vel = (move_resolution_ - last_move_resolution_) / dt;
-        last_move_resolution_ = move_resolution_;
-        ROS_INFO("DC Motor velocity = %.2f rad/s", dc_motor_vel);
 
-        encoder_.encoder_pulse = encoder_data_process(read_string);
+        double dc_motor_vel = deltaDist / dt;
+        //ROS_INFO("DC Motor velocity = %.2f rad/s", dc_motor_vel);
+
+        encoder_.encoder_pulse = encoderCnt;
         encoder_.motor_vel = dc_motor_vel;
 
-        dcmotor_tf_publisher(motor_pos_);
-
-        last_time_ = current_time_;
+        dcmotor_tf_publisher(mtrPos);
 
         encoder_motor.publish(encoder_);
 
         // Print to the terminal what was sent and what was received.
         //std::cout << "\tSerial Port received:\t" << read_string << std::endl;
+
+        //loop_rate.sleep();
+        encoderCntOld = encoderCnt;
+        last_time_ = current_time_;
     }    
     
     // Close the serial ports and end the program.
     serial_port_.Close() ;
-}
-
-int STM32_DCMotor::encoder_data_process(std::string data)
-{
-    char data_array[10];
-    strcpy(data_array, data.c_str());
-
-    int counter_;
-    for(int i = 2; i <= 9; i++)
-    {
-        counter_ += charToint_Number(data_array[i]) * pow(10, 9 - i);
-    }
-    
-    if(data_array[0] == '0')
-    {
-        return 1 * counter_;
-    }
-    else
-    {
-        return -1 * counter_;;
-    }
-}
-
-int STM32_DCMotor::charToint_Number(char data)
-{
-    if(data == '1')
-    {
-        return 1;
-    }
-    else if(data == '2')
-    {
-        return 2;
-    }
-    else if(data == '3')
-    {
-        return 3;
-    }
-    else if(data == '4')
-    {
-        return 4;
-    }
-    else if(data == '5')
-    {
-        return 5;
-    }
-    else if(data == '6')
-    {
-        return 6;
-    }
-    else if(data == '7')
-    {
-        return 7;
-    }
-    else if(data == '8')
-    {
-        return 8;
-    }
-    else if(data == '9')
-    {
-        return 9;
-    }
-    else
-    {
-        return 0;
-    }
 }
 
 void STM32_DCMotor::dcmotor_tf_publisher(double position)
