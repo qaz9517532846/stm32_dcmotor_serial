@@ -75,6 +75,28 @@ $ rosrun stm32_dcmotor_serial STM32_DCMotor_client <duty>
 
 ------
 
+### Send data using serial communication.
+
+- Duty
+
+| Address        | Address 0                  | Address 1                  | Address 2|
+| ---            | ---                        | ---                        | ---                           |
+| data type      | UINT8                      | UINT8                      | UINT8                         |
+| data           | direction(0 or 1)          | duty hightbyte (0 - 100)   | duty lowbyte (0 - 99) * 0.01  |
+
+------
+
+### Received data using serial communication.
+
+- Encoder counter
+
+| Address        | Address 0                  | Address 1                  |
+| ---            | ---                        | ---                        |
+| data type      | UINT8                      | UINT8                      |
+| data           | encoder cnt hightbyte      | encoder cnt lowbyte        |
+
+------
+
 ### Demo
 
 [Demo Video](https://www.youtube.com/watch?v=ZO4yH0yluY4)
